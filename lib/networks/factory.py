@@ -19,12 +19,12 @@ import tensorflow as tf
 #__sets['VGGnet_test'] = networks.VGGnet_test()
 
 
-def get_network(name, device_name=None):
+def get_network(name):
     """Get a network by name."""
     if name.split('_')[1] == 'test':
-       return networks.VGGnet_test(device_name)
+       return networks.VGGnet_test()
     elif name.split('_')[1] == 'train':
-       return networks.VGGnet_train(device_name)
+       return networks.VGGnet_train()
     else:
        raise KeyError('Unknown network name: {}'.format(name))
     
