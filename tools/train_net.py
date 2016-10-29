@@ -17,7 +17,7 @@ from networks.factory import get_network
 import argparse
 import pprint
 import numpy as np
-import sys
+import sys,os
 import pdb
 
 def parse_args():
@@ -88,7 +88,9 @@ if __name__ == '__main__':
     device_name = '/gpu:{:d}'.format(args.gpu_id)
     print device_name
 
-    network = get_network(args.network_name, device_name)
+    os.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu_id)
+
+    network = get_network(args.network_name)
     print 'Use network `{:s}` in training'.format(args.network_name)
 
     train_net(network, imdb, roidb, output_dir,

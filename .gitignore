@@ -11,3 +11,4 @@ data/cache/
 *.so
 *.swp
 experiments/logs/*
+output/

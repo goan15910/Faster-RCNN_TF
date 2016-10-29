@@ -48,6 +48,7 @@ def proposal_target_layer(rpn_rois, gt_boxes,_num_classes):
         rois_per_image, _num_classes)
 
     if DEBUG:
+        print "In proposal target layer:"
         print 'num fg: {}'.format((labels > 0).sum())
         print 'num bg: {}'.format((labels == 0).sum())
         _count += 1
@@ -82,6 +83,10 @@ def _get_bbox_regression_labels(bbox_target_data, num_classes):
     bbox_targets = np.zeros((clss.size, 4 * num_classes), dtype=np.float32)
     bbox_inside_weights = np.zeros(bbox_targets.shape, dtype=np.float32)
     inds = np.where(clss > 0)[0]
+    if DEBUG:
+        print "In __get_bbox_regression_labels:"
+        print "bbox_targets shape ({0}, {1})".format(*bbox_targets.shape)
+        print "bbox_target_data shape ({0}, {1})".format(*bbox_target_data.shape)
     for ind in inds:
         cls = clss[ind]
         start = 4 * cls
