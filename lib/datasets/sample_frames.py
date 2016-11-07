@@ -42,7 +42,7 @@ def get_abs_path(dir_list, clips, ext):
     frame_paths = []
     for i,clip in enumerate(clips):
         for frame in clip:
-            frame_path = osp.join(dir_list[i], frame + "." + ext)
+            frame_path = osp.join(dir_list[i], frame)
             frame_paths.append(frame_path)
     return frame_paths
 
