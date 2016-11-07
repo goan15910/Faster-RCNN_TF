@@ -91,7 +91,7 @@ class SolverWrapper(object):
         rpn_cls_score = tf.reshape(tf.gather(rpn_cls_score,tf.where(tf.not_equal(rpn_label,-1))),[-1,2])
         rpn_label = tf.reshape(tf.gather(rpn_label,tf.where(tf.not_equal(rpn_label,-1))),[-1])
         rpn_cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(rpn_cls_score, rpn_label))
-
+        tf.add_to_collection("lossses", rpn_cross_entropy)
 
         # bounding box regression L1 loss
         rpn_bbox_pred = self.net.get_output('rpn_bbox_pred')
@@ -102,6 +102,7 @@ class SolverWrapper(object):
         rpn_loss_box = tf.mul(tf.reduce_mean(tf.reduce_sum(tf.mul(rpn_bbox_outside_weights,tf.add(
                        tf.mul(tf.mul(tf.pow(tf.mul(rpn_bbox_inside_weights, tf.sub(rpn_bbox_pred, rpn_bbox_targets))*3,2),0.5),smoothL1_sign),
                        tf.mul(tf.sub(tf.abs(tf.sub(rpn_bbox_pred, rpn_bbox_targets)),0.5/9.0),tf.abs(smoothL1_sign-1)))), reduction_indices=[1,2])),10)
+        tf.add_to_collection("lossses", rpn_loss_box)
  
         # R-CNN
         # classification loss
@@ -109,7 +110,7 @@ class SolverWrapper(object):
         #label = tf.placeholder(tf.int32, shape=[None])
         label = tf.reshape(self.net.get_output('roi-data')[1],[-1])
         cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(cls_score, label))
-
+        tf.add_to_collection('losses', cross_entropy)
 
         # bounding box regression L1 loss
         bbox_pred = self.net.get_output('bbox_pred')
@@ -117,9 +118,15 @@ class SolverWrapper(object):
         bbox_inside_weights = self.net.get_output('roi-data')[3]
         bbox_outside_weights = self.net.get_output('roi-data')[4]
         loss_box = tf.reduce_mean(tf.reduce_sum(tf.mul(bbox_outside_weights,tf.mul(bbox_inside_weights, tf.abs(tf.sub(bbox_pred, bbox_targets)))), reduction_indices=[1]))
+        tf.add_to_collection('losses', loss_box)
 
+        # weight-decay L2 loss
+        wd = cfg.TRAIN.WEIGHT_DECAY
+        for var in self.net.get_trainable_weights():
+            weight_decay = tf.mul(tf.nn.l2_loss(var), wd, name='weight_loss')
+            tf.add_to_collection('losses', weight_decay)
 
-        loss = cross_entropy + loss_box + rpn_cross_entropy + rpn_loss_box
+        loss = tf.add_n(tf.get_collection('losses'), name='total_loss')
 
         # optimizer
         lr = tf.Variable(cfg.TRAIN.LEARNING_RATE, trainable=False)

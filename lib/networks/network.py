@@ -78,6 +78,12 @@ class Network(object):
             raise KeyError('Unknown layer name fed: %s'%layer)
         return layer
 
+    def _get_trainable_vars(self):
+        return tf.trainable_variables()
+
+    def get_trainable_weights(self):
+        return [ var for var in self._get_trainable_vars() if "weights" in var.name ]
+
     def get_unique_name(self, prefix):
         id = sum(t.startswith(prefix) for t,_ in self.layers.items())+1
         return '%s_%d'%(prefix, id)
