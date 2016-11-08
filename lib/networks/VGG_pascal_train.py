@@ -4,11 +4,11 @@ from networks.network import Network
 
 #define
 
-n_classes = 30 + 1
+n_classes = 20 + 1
 _feat_stride = [16,]
 anchor_scales = [8, 16, 32]
 
-class VGGnet_train(Network):
+class VGG_pascal_train(Network):
     def __init__(self, trainable=True):
         self.inputs = []
         self.data = tf.placeholder(tf.float32, shape=[None, None, None, 3])

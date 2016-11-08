@@ -5,7 +5,7 @@ n_classes = 30 + 1
 _feat_stride = [16,]
 anchor_scales = [8, 16, 32] 
 
-class VGGnet_test(Network):
+class VGG_vid_test(Network):
     def __init__(self, trainable=True):
         self.inputs = []
         self.data = tf.placeholder(tf.float32, shape=[None, None, None, 3])

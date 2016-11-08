@@ -6,6 +6,7 @@
 *.ckpt
 data/pretrain_model/
 data/cache/
+data/
 *.o
 *.pyc
 *.so

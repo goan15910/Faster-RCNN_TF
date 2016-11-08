@@ -68,6 +68,7 @@ class RoIDataLayer(object):
         """Get blobs and copy them into this layer's top blob vector."""
         blobs = self._get_next_minibatch()
         if not self._check_data_gt(blobs):
+            #TODO: dump frame without gt_boxes
             blobs['gt_boxes'] = np.zeros((1,5))
 
         return blobs

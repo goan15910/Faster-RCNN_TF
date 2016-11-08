@@ -1,10 +1,10 @@
 #!/bin/bash
 # Usage:
-# ./experiments/scripts/faster_rcnn_end2end.sh GPU DATASET [options args to {train,test}_net.py]
+# ./experiments/scripts/faster_rcnn_end2end.sh GPU DATASET NET [options args to {train,test}_net.py]
 # DATASET is either pascal_voc / coco / imagenet
 #
 # Example:
-# ./experiments/scripts/faster_rcnn_end2end.sh 0 imagenet \
+# ./experiments/scripts/faster_rcnn_end2end.sh 0 imagenet VGG_vid_train\
 #   --set EXP_DIR foobar RNG_SEED 42 TRAIN.SCALES "[400, 500, 600, 700]"
 
 set -x
@@ -14,6 +14,7 @@ export PYTHONUNBUFFERED="True"
 
 GPU_ID=$1
 DATASET=$2
+NET=$3
 NET_lc=${NET,,}
 
 array=( $@ )
@@ -63,16 +64,9 @@ time python ./tools/train_net.py --gpu ${GPU_ID} \
   --imdb ${TRAIN_IMDB} \
   --iters ${ITERS} \
   --cfg experiments/cfgs/faster_rcnn_end2end.yml \
-  --network VGGnet_train \
+  --network ${NET} \
   ${EXTRA_ARGS}
 
 set +x
 NET_FINAL=`grep -B 1 "done solving" ${LOG} | grep "Wrote snapshot" | awk '{print $4}'`
 set -x
-
-#time python ./tools/test_net.py --gpu ${GPU_ID} \
-#  --weights ${NET_FINAL} \
-#  --imdb ${TEST_IMDB} \
-#  --cfg experiments/cfgs/faster_rcnn_end2end.yml \
-#  --network VGGnet_test \
-#  ${EXTRA_ARGS}
