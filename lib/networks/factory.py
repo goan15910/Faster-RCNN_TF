@@ -9,17 +9,17 @@
 
 __sets = {}
 
-import networks.VGG_vid_train
-import networks.VGG_vid_test
-import networks.VGG_pascal_train
-import networks.VGG_pascal_test
+from networks.VGG_vid_train import VGG_vid_train
+from networks.VGG_vid_test import VGG_vid_test
+from networks.VGG_pascal_train import VGG_pascal_train
+from networks.VGG_pascal_test import VGG_pascal_test
 import pdb
 import tensorflow as tf
 
-__sets['VGG_vid_train'] = networks.VGG_vid_train
-__sets['VGG_vid_test'] = networks.VGG_vid_test
-__sets['VGG_pascal_train'] = networks.VGG_pascal_train
-__sets['VGG_pascal_test'] = networks.VGG_pascal_test
+__sets['VGG_vid_train'] = VGG_vid_train
+__sets['VGG_vid_test'] = VGG_vid_test
+__sets['VGG_pascal_train'] = VGG_pascal_train
+__sets['VGG_pascal_test'] = VGG_pascal_test
 
 
 def get_network(name):
