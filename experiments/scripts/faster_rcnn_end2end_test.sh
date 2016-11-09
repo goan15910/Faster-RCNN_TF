@@ -20,7 +20,7 @@ NET_lc=${NET,,}
 
 array=( $@ )
 len=${#array[@]}
-EXTRA_ARGS=${array[@]:3:$len}
+EXTRA_ARGS=${array[@]:4:$len}
 EXTRA_ARGS_SLUG=${EXTRA_ARGS// /_}
 
 case $DATASET in
@@ -53,7 +53,7 @@ if [ ! -d "$LOG_DIR" ]; then
     mkdir "$LOG_DIR"
 fi
 
-LOG="$LOG_DIR/faster_rcnn_end2end_${NET}_${EXTRA_ARGS_SLUG}.txt.`date +'%Y-%m-%d_%H-%M-%S'`"
+LOG="$LOG_DIR/faster_rcnn_end2end_${NET}_${ITERS}_${EXTRA_ARGS_SLUG}.txt.`date +'%Y-%m-%d_%H-%M-%S'`"
 exec &> >(tee -a "$LOG")
 echo Logging output to "$LOG"
 
