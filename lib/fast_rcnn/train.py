@@ -77,23 +77,20 @@ class SolverWrapper(object):
             sess.run(weights.assign(orig_0))
             sess.run(biases.assign(orig_1))
 
-
-    def train_model(self, sess, max_iters):
-        """Network training loop."""
-
-        data_layer = get_data_layer(self.roidb, self.imdb.num_classes)
-   
-        # RPN
-        # classification loss
+    def rpn_cls_loss(self):
+        # RPN classification loss
+        name = "rpn_cls_loss"
         rpn_cls_score = tf.reshape(self.net.get_output('rpn_cls_score_reshape'),[-1,2])
         rpn_label = tf.reshape(self.net.get_output('rpn-data')[0],[-1])
         # ignore_label(-1)
         rpn_cls_score = tf.reshape(tf.gather(rpn_cls_score,tf.where(tf.not_equal(rpn_label,-1))),[-1,2])
         rpn_label = tf.reshape(tf.gather(rpn_label,tf.where(tf.not_equal(rpn_label,-1))),[-1])
-        rpn_cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(rpn_cls_score, rpn_label))
-        tf.add_to_collection("lossses", rpn_cross_entropy)
+        rpn_cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(rpn_cls_score, rpn_label), name=name)
+        return rpn_cross_entropy
 
-        # bounding box regression L1 loss
+    def rpn_bbox_loss(self):
+        # RPN bounding box regression L1 loss
+        name = "rpn_bbox_loss"
         rpn_bbox_pred = self.net.get_output('rpn_bbox_pred')
         rpn_bbox_targets = tf.transpose(self.net.get_output('rpn-data')[1],[0,2,3,1])
         rpn_bbox_inside_weights = tf.transpose(self.net.get_output('rpn-data')[2],[0,2,3,1])
@@ -101,37 +98,70 @@ class SolverWrapper(object):
         smoothL1_sign = tf.cast(tf.less(tf.abs(tf.sub(rpn_bbox_pred, rpn_bbox_targets)),1),tf.float32)
         rpn_loss_box = tf.mul(tf.reduce_mean(tf.reduce_sum(tf.mul(rpn_bbox_outside_weights,tf.add(
                        tf.mul(tf.mul(tf.pow(tf.mul(rpn_bbox_inside_weights, tf.sub(rpn_bbox_pred, rpn_bbox_targets))*3,2),0.5),smoothL1_sign),
-                       tf.mul(tf.sub(tf.abs(tf.sub(rpn_bbox_pred, rpn_bbox_targets)),0.5/9.0),tf.abs(smoothL1_sign-1)))), reduction_indices=[1,2])),10)
-        tf.add_to_collection("lossses", rpn_loss_box)
- 
-        # R-CNN
-        # classification loss
-        cls_score = self.net.get_output('cls_score')
-        #label = tf.placeholder(tf.int32, shape=[None])
-        label = tf.reshape(self.net.get_output('roi-data')[1],[-1])
-        cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(cls_score, label))
-        tf.add_to_collection('losses', cross_entropy)
+                       tf.mul(tf.sub(tf.abs(tf.sub(rpn_bbox_pred, rpn_bbox_targets)),0.5/9.0),tf.abs(smoothL1_sign-1)))), reduction_indices=[1,2])),10, name=name)
+        return rpn_loss_box
 
-        # bounding box regression L1 loss
+    def rcnn_cls_loss(self):
+        # RCNN classification loss
+        name = "rcnn_cls_loss"
+        cls_score = self.net.get_output('cls_score')
+        label = tf.reshape(self.net.get_output('roi-data')[1],[-1])
+        cross_entropy = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(cls_score, label), name=name)
+        return cross_entropy
+
+    def rcnn_bbox_loss(self):
+        # RCNN bounding box regression L1 loss
+        name = "rcnn_bbox_loss"
         bbox_pred = self.net.get_output('bbox_pred')
         bbox_targets = self.net.get_output('roi-data')[2]
         bbox_inside_weights = self.net.get_output('roi-data')[3]
         bbox_outside_weights = self.net.get_output('roi-data')[4]
-        loss_box = tf.reduce_mean(tf.reduce_sum(tf.mul(bbox_outside_weights,tf.mul(bbox_inside_weights, tf.abs(tf.sub(bbox_pred, bbox_targets)))), reduction_indices=[1]))
-        tf.add_to_collection('losses', loss_box)
+        loss_box = tf.reduce_mean(tf.reduce_sum(tf.mul(bbox_outside_weights,tf.mul(bbox_inside_weights, tf.abs(tf.sub(bbox_pred, bbox_targets)))), reduction_indices=[1]), name=name)
+        return loss_box
 
-        # weight-decay L2 loss
-        wd = cfg.TRAIN.WEIGHT_DECAY
-        for var in self.net.get_trainable_weights():
-            weight_decay = tf.mul(tf.nn.l2_loss(var), wd, name='weight_loss')
-            tf.add_to_collection('losses', weight_decay)
+    def _add_losses_summaries(self, total_loss, loss_set=None):
+        if loss_set is not None:
+            losses = tf.get_collection(loss_set) + [total_loss]
+        else:
+            losses = [total_loss]
+        for l in losses:
+            tf.scalar_summary(l.op.name, l)
 
-        loss = tf.add_n(tf.get_collection('losses'), name='total_loss')
+    def train_model(self, sess, max_iters):
+        """Network training loop."""
+
+        data_layer = get_data_layer(self.roidb, self.imdb.num_classes)
+
+        # Set objective loss
+        obj_loss_set = "objective_losses"
+        tf.add_to_collection(obj_loss_set, self.rpn_cls_loss())
+        tf.add_to_collection(obj_loss_set, self.rpn_bbox_loss())
+        tf.add_to_collection(obj_loss_set, self.rcnn_cls_loss())
+        tf.add_to_collection(obj_loss_set, self.rcnn_bbox_loss())
+        obj_loss = tf.add_n(tf.get_collection(obj_loss_set), name='objective_loss')
+
+        if cfg.TRAIN.WEIGHT_DECAY:
+            # weight-decay L2 loss
+            wd_loss_set = "weight_decay_losses"
+            wd = cfg.TRAIN.WEIGHT_DECAY_FACTOR
+            for var in self.net.get_trainable_weights():
+                weight_decay = tf.mul(tf.nn.l2_loss(var), wd, name='weight_loss')
+                tf.add_to_collection(wd_loss_set, weight_decay)
+            wd_loss = tf.add_n(tf.get_collection(wd_loss_set), name='total_weight_loss')
+            total_loss = tf.add(obj_loss, wd_loss, name="total_loss")
+        else:
+            total_loss = tf.add(obj_loss, 0, name="total_loss")
 
         # optimizer
         lr = tf.Variable(cfg.TRAIN.LEARNING_RATE, trainable=False)
         momentum = cfg.TRAIN.MOMENTUM
-        train_op = tf.train.MomentumOptimizer(lr, momentum).minimize(loss)
+        train_op = tf.train.MomentumOptimizer(lr, momentum).minimize(total_loss)
+
+        # summary writer
+        if not os.path.exists(self.output_dir):
+            os.makedirs(self.output_dir)
+        summary_op = tf.merge_all_summaries()
+        summary_writer = tf.train.SummaryWriter(self.output_dir, sess.graph)
 
         # iintialize variables
         sess.run(tf.initialize_all_variables())
@@ -143,13 +173,16 @@ class SolverWrapper(object):
         last_snapshot_iter = -1
         timer = Timer()
         for iter in range(max_iters):
-            # learning rate
+            # Learning rate
             if iter >= cfg.TRAIN.STEPSIZE:
                 sess.run(tf.assign(lr, cfg.TRAIN.LEARNING_RATE * cfg.TRAIN.GAMMA))
             else:
                 sess.run(tf.assign(lr, cfg.TRAIN.LEARNING_RATE))
+            
+            # Add loss summaries
+            self._add_losses_summaries(total_loss, obj_loss_set)
 
-            # get one batch
+            # Get one batch
             blobs = data_layer.forward()
 
             # Make one SGD update
@@ -157,14 +190,19 @@ class SolverWrapper(object):
                            self.net.gt_boxes: blobs['gt_boxes']}
             timer.tic()
 
-            rpn_loss_cls_value, rpn_loss_box_value,loss_cls_value, loss_box_value, _ = sess.run([rpn_cross_entropy, rpn_loss_box, cross_entropy, loss_box, train_op], feed_dict=feed_dict)
+            rpn_cls, rpn_bbox, rcnn_cls, rcnn_bbox, _ = sess.run(tf.get_collection(obj_loss_set) + [train_op], feed_dict=feed_dict)
 
             timer.toc()
 
             if (iter+1) % (cfg.TRAIN.DISPLAY) == 0:
+                total_loss_value = rpn_cls + rpn_bbox + rcnn_cls + rcnn_bbox
                 print 'iter: %d / %d,total loss: %.4f, rpn_loss_cls: %.4f, rpn_loss_box: %.4f, loss_cls: %.4f, loss_box: %.4f, lr: %f'%\
-                        (iter+1, max_iters, rpn_loss_cls_value + rpn_loss_box_value + loss_cls_value + loss_box_value ,rpn_loss_cls_value, rpn_loss_box_value,loss_cls_value, loss_box_value, lr.eval())
+                        (iter+1, max_iters, total_loss_value, rpn_cls, rpn_bbox, rcnn_cls, rcnn_bbox, lr.eval())
                 print 'speed: {:.3f}s / iter'.format(timer.average_time)
+
+            if (iter+1) % cfg.TRAIN.SUMMARY_ITERS == 0:
+                summary_str = sess.run(summary_op)
+                summary_writer.add_summary(summary_str, iter)
 
             if (iter+1) % cfg.TRAIN.SNAPSHOT_ITERS == 0:
                 last_snapshot_iter = iter

@@ -37,7 +37,8 @@ __C.TRAIN = edict()
 __C.TRAIN.LEARNING_RATE = 0.001
 __C.TRAIN.MOMENTUM = 0.9
 __C.TRAIN.GAMMA = 0.1
-__C.TRAIN.WEIGHT_DECAY = 5e-4
+__C.TRAIN.WEIGHT_DECAY = True
+__C.TRAIN.WEIGHT_DECAY_FACTOR = 5e-4
 __C.TRAIN.STEPSIZE = 50000
 __C.TRAIN.DISPLAY = 10
 __C.IS_MULTISCALE = False
@@ -88,6 +89,9 @@ __C.TRAIN.BBOX_REG = True
 # Overlap required between a ROI and ground-truth box in order for that ROI to
 # be used as a bounding-box regression training example
 __C.TRAIN.BBOX_THRESH = 0.5
+
+# Iterations between summaries writing
+__C.TRAIN.SUMMARY_ITERS = 100
 
 # Iterations between snapshots
 __C.TRAIN.SNAPSHOT_ITERS = 5000

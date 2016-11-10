@@ -78,6 +78,11 @@ class Network(object):
             raise KeyError('Unknown layer name fed: %s'%layer)
         return layer
 
+    def _activation_summary(self, x):
+        tensor_name = x.op.name
+        tf.histogram_summary(tensor_name + '/activations', x)
+        tf.scalar_summary(tensor_name + '/sparsity', tf.nn.zero_fraction(x))
+
     def _get_trainable_vars(self):
         return tf.trainable_variables()
 
