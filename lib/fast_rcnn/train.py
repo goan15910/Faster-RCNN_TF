@@ -160,8 +160,9 @@ class SolverWrapper(object):
         # summary writer
         if not os.path.exists(self.output_dir):
             os.makedirs(self.output_dir)
-        summary_op = tf.merge_all_summaries()
-        summary_writer = tf.train.SummaryWriter(self.output_dir, sess.graph)
+        #summary_op = tf.merge_all_summaries()
+        #summary_writer = tf.train.SummaryWriter(self.output_dir, sess.graph)
+        #summary_writer.flush()
 
         # iintialize variables
         sess.run(tf.initialize_all_variables())
@@ -178,10 +179,8 @@ class SolverWrapper(object):
                 sess.run(tf.assign(lr, cfg.TRAIN.LEARNING_RATE * cfg.TRAIN.GAMMA))
             else:
                 sess.run(tf.assign(lr, cfg.TRAIN.LEARNING_RATE))
+            #tf.scalar_summary('learning_rate', lr)
             
-            # Add loss summaries
-            self._add_losses_summaries(total_loss, obj_loss_set)
-
             # Get one batch
             blobs = data_layer.forward()
 
@@ -194,15 +193,18 @@ class SolverWrapper(object):
 
             timer.toc()
 
+            # Add loss summaries
+            #self._add_losses_summaries(total_loss, obj_loss_set)
+
             if (iter+1) % (cfg.TRAIN.DISPLAY) == 0:
                 total_loss_value = rpn_cls + rpn_bbox + rcnn_cls + rcnn_bbox
                 print 'iter: %d / %d,total loss: %.4f, rpn_loss_cls: %.4f, rpn_loss_box: %.4f, loss_cls: %.4f, loss_box: %.4f, lr: %f'%\
                         (iter+1, max_iters, total_loss_value, rpn_cls, rpn_bbox, rcnn_cls, rcnn_bbox, lr.eval())
                 print 'speed: {:.3f}s / iter'.format(timer.average_time)
 
-            if (iter+1) % cfg.TRAIN.SUMMARY_ITERS == 0:
-                summary_str = sess.run(summary_op)
-                summary_writer.add_summary(summary_str, iter)
+            #if (iter+1) % cfg.TRAIN.SUMMARY_ITERS == 0:
+            #    summary_str = sess.run(summary_op)
+            #    summary_writer.add_summary(summary_str, iter)
 
             if (iter+1) % cfg.TRAIN.SNAPSHOT_ITERS == 0:
                 last_snapshot_iter = iter

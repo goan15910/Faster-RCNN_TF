@@ -122,8 +122,12 @@ class Network(object):
                 conv = tf.concat(3, output_groups)
             if relu:
                 bias = tf.nn.bias_add(conv, biases)
-                return tf.nn.relu(bias, name=scope.name)
-            return tf.nn.bias_add(conv, biases, name=scope.name)
+                conv_out = tf.nn.relu(bias, name=scope.name)
+                self._activation_summary(conv_out)
+                return conv_out
+            conv_out = tf.nn.bias_add(conv, biases, name=scope.name)
+            #self._activation_summary(conv_out)
+            return conv_out
 
     @layer
     def relu(self, input, name):
@@ -265,6 +269,7 @@ class Network(object):
 
             op = tf.nn.relu_layer if relu else tf.nn.xw_plus_b
             fc = op(feed_in, weights, biases, name=scope.name)
+            #self._activation_summary(fc)
             return fc
 
     @layer
