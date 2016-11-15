@@ -61,7 +61,7 @@ WEIGHTS="output/faster_rcnn_end2end/${TRAIN_IMDB}/VGGnet_fast_rcnn_iter_${ITERS}
 
 time python ./tools/test_net.py --gpu ${GPU_ID} \
   --weights ${WEIGHTS}\
-  --imdb ${TRAIN_IMDB} \
+  --imdb ${TEST_IMDB} \
   --cfg experiments/cfgs/faster_rcnn_end2end.yml \
   --network ${NET} \
   ${EXTRA_ARGS}
