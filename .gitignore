@@ -6,9 +6,11 @@
 *.ckpt
 data/pretrain_model/
 data/cache/
+data/
 *.o
 *.pyc
 *.so
 *.swp
 experiments/logs/*
 output/
+*.pkl

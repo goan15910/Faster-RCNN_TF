@@ -78,6 +78,17 @@ class Network(object):
             raise KeyError('Unknown layer name fed: %s'%layer)
         return layer
 
+    def _activation_summary(self, x):
+        tensor_name = x.op.name
+        tf.histogram_summary(tensor_name + '/activations', x)
+        tf.scalar_summary(tensor_name + '/sparsity', tf.nn.zero_fraction(x))
+
+    def _get_trainable_vars(self):
+        return tf.trainable_variables()
+
+    def get_trainable_weights(self):
+        return [ var for var in self._get_trainable_vars() if "weights" in var.name ]
+
     def get_unique_name(self, prefix):
         id = sum(t.startswith(prefix) for t,_ in self.layers.items())+1
         return '%s_%d'%(prefix, id)
@@ -111,30 +122,34 @@ class Network(object):
                 conv = tf.concat(3, output_groups)
             if relu:
                 bias = tf.nn.bias_add(conv, biases)
-                return tf.nn.relu(bias, name=scope.name)
-            return tf.nn.bias_add(conv, biases, name=scope.name)
+                conv_out = tf.nn.relu(bias, name=scope.name)
+                self._activation_summary(conv_out)
+                return conv_out
+            conv_out = tf.nn.bias_add(conv, biases, name=scope.name)
+            #self._activation_summary(conv_out)
+            return conv_out
 
     @layer
     def relu(self, input, name):
         return tf.nn.relu(input, name=name)
 
     @layer
-    def max_pool(self, input, k_h, k_w, s_h, s_w, name, padding=DEFAULT_PADDING):
+    def max_pool(self, input, k_h, k_w, s_h, s_w, name, padding=DEFAULT_PADDING, switch=True):
         self.validate_padding(padding)
         return tf.nn.max_pool(input,
-                              ksize=[1, k_h, k_w, 1],
-                              strides=[1, s_h, s_w, 1],
-                              padding=padding,
-                              name=name)
+                                ksize=[1, k_h, k_w, 1],
+                                strides=[1, s_h, s_w, 1],
+                                padding=padding,
+                                name=name)
 
     @layer
-    def avg_pool(self, input, k_h, k_w, s_h, s_w, name, padding=DEFAULT_PADDING):
+    def avg_pool(self, input, k_h, k_w, s_h, s_w, name, padding=DEFAULT_PADDING, switch=True):
         self.validate_padding(padding)
         return tf.nn.avg_pool(input,
-                              ksize=[1, k_h, k_w, 1],
-                              strides=[1, s_h, s_w, 1],
-                              padding=padding,
-                              name=name)
+                                ksize=[1, k_h, k_w, 1],
+                                strides=[1, s_h, s_w, 1],
+                                padding=padding,
+                                name=name)
 
     @layer
     def roi_pool(self, input, pooled_height, pooled_width, spatial_scale, name):
@@ -254,6 +269,7 @@ class Network(object):
 
             op = tf.nn.relu_layer if relu else tf.nn.xw_plus_b
             fc = op(feed_in, weights, biases, name=scope.name)
+            #self._activation_summary(fc)
             return fc
 
     @layer

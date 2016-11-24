@@ -1,11 +1,11 @@
 import tensorflow as tf
 from networks.network import Network
 
-n_classes = 21
+n_classes = 20 + 1
 _feat_stride = [16,]
 anchor_scales = [8, 16, 32] 
 
-class VGGnet_test(Network):
+class VGG_pascal_test_lowres(Network):
     def __init__(self, trainable=True):
         self.inputs = []
         self.data = tf.placeholder(tf.float32, shape=[None, None, None, 3])
@@ -17,6 +17,7 @@ class VGGnet_test(Network):
 
     def setup(self):
         (self.feed('data')
+             .avg_pool(2, 2, 2, 2, padding='VALID', name='pool0')
              .conv(3, 3, 64, 1, 1, name='conv1_1', trainable=False)
              .conv(3, 3, 64, 1, 1, name='conv1_2', trainable=False)
              .max_pool(2, 2, 2, 2, padding='VALID', name='pool1')

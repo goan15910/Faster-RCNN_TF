@@ -105,7 +105,7 @@ def imagenet_eval(detpath,
         # load annots
         recs = {}
         for i, imagename in enumerate(imagenames):
-            anno = '/tmp3/jeff/vid/ILSVRC2015/Annotations/VID/train/'+ '/'.join(imagename.split('/')[-3:]) + '.xml'
+            anno = '/tmp3/jeff/vid/ILSVRC2015/Annotations/VID/'+ '/'.join(imagename.split('/')[-3:]) + '.xml'
             print anno
             recs[imagename] = parse_rec(anno)
             if i % 100 == 0:

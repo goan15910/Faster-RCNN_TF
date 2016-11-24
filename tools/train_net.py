@@ -28,9 +28,6 @@ def parse_args():
     parser.add_argument('--gpu', dest='gpu_id',
                         help='GPU device id to use [0]',
                         default=0, type=int)
-    parser.add_argument('--solver', dest='solver',
-                        help='solver prototxt',
-                        default=None, type=str)
     parser.add_argument('--iters', dest='max_iters',
                         help='number of iterations to train',
                         default=70000, type=int)
