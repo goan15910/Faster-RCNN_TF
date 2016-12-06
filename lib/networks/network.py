@@ -273,6 +273,14 @@ class Network(object):
             return fc
 
     @layer
+    def lrelu(self, input, alpha=0.1, name):
+        return tf.maximum(alpha*input, input, name=name)
+
+    @layer
+    def elu(self, input, name):
+        return tf.nn.elu(input, name=name)
+
+    @layer
     def softmax(self, input, name):
         input_shape = tf.shape(input)
         if name == 'rpn_cls_prob':
